@@ -13,8 +13,10 @@ namespace RocketLeagueOrion.Controllers
         public static void SetupSdk()
         {
             LogitechGSDK.LogiLedInit();
-            Thread.Sleep(2000);
+            Thread.Sleep(500);
             LogitechGSDK.LogiLedSaveCurrentLighting();
+            // Disable keys that SetLightingFromBitmap can't access
+            LogitechGSDK.LogiLedSetLighting(0, 0, 0);
         }
 
         public static Bitmap CreateBoostBitmap(MainModel mainModel)
