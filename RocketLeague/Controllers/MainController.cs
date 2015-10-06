@@ -138,9 +138,7 @@ namespace RocketLeagueOrion.Controllers
         {
             _processWorker.CancelAsync();
             LogitechGSDK.LogiLedRestoreLighting();
-            Thread.Sleep(500);
             LogitechGSDK.LogiLedShutdown();
-            Thread.Sleep(500);
         }
     }
 }
