@@ -97,14 +97,15 @@ namespace RocketLeagueOrion.Controllers
                     // Ensure process is still running
                     if (MainModel.RocketLeagueProcess.HasExited)
                     {
+                        MainModel.Status = "Game not found";
                         LogitechGSDK.LogiLedRestoreLighting();
                         _processWorker.RunWorkerAsync();
                         return;
                     }
-
-                    RocketLeagueController.GetAddress(MainModel);
                     sw.Restart();
                 }
+
+                RocketLeagueController.GetAddress(MainModel);
 
                 // Update model boost amount
                 RocketLeagueController.GetBoostAmount(MainModel);
