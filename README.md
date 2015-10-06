@@ -7,4 +7,4 @@ To use it download the LogitechLEDSDK and place the DLL into the same directory 
 Written in C# WinForms, I'd love any feedback on the code style
 It only reads memory and does NOT write to it, still, use at your own risk.
 
-To use go to [Release]https://github.com/SpoinkyNL/RocketLeagueOrion/releases, download the latest RocketLeagueOrion.binaries.zip, extract the ZIP and run RocketLeagueOrion.exe
+To use go to [Releases](https://github.com/SpoinkyNL/RocketLeagueOrion/releases), download the latest RocketLeagueOrion.binaries.zip, extract the ZIP and run RocketLeagueOrion.exe
