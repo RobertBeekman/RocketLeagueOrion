@@ -1,5 +1,5 @@
 # RocketLeagueOrion
-Shows how much boost you have in Rocket League on the Logirech G910 Orion
+Shows how much boost you have in Rocket League on the Logitech G910 Orion and similar Logitech devices (Untested).
 
 To use it download the LogitechLEDSDK and place the DLL into the same directory as the RocketLeagueOrion.exe
 [Video](https://www.youtube.com/watch?v=L8rqFGaPeTg)
