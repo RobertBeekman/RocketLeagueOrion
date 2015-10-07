@@ -8,34 +8,22 @@ namespace RocketLeagueOrion.Models
 {
     public class MainModel
     {
+        #region Backing fields
         // Game data
         private int _boostAmount;
         // GUI
         private string _status;
+        #endregion
 
         public MainModel(MainView mainView)
         {
             MainView = mainView;
         }
 
-        // Internal stuff
         private MainView MainView { get; }
         public Process RocketLeagueProcess { get; set; }
-        public Memory Memory { get; set; }
+
         public IntPtr BoostAddress { get; set; }
-
-        // Game data
-        public int BoostAmount
-        {
-            get { return _boostAmount; }
-            set
-            {
-                // Auto-update GUI
-                _boostAmount = value;
-                MainView.labelBoostAmount.InvokeIfRequired(() => { MainView.labelBoostAmount.Text = value.ToString(); });
-            }
-        }
-
         public int PreviousBoost { get; set; }
 
         // Colors
@@ -43,15 +31,33 @@ namespace RocketLeagueOrion.Models
         public Color SecondaryColor { get; set; }
 
         // GUI
+        public int BoostAmount
+        {
+            get { return _boostAmount; }
+            set
+            {
+                _boostAmount = value;
+                MainView.labelBoostAmount.InvokeIfRequired(() => { MainView.labelBoostAmount.Text = value.ToString(); });
+            }
+        }
         public string Status
         {
             get { return _status; }
             set
             {
-                // Auto-update GUI
                 _status = value;
                 MainView.labelStatus.InvokeIfRequired(() => { MainView.labelStatus.Text = value; });
             }
+        }
+
+        public void GetBoostAmount()
+        {
+            var memory = new Memory(RocketLeagueProcess);
+            BoostAddress = memory.GetAddress("\"RocketLeague.exe\"+0155B050+580+40+664+6F4+21C");
+
+            var boostFloat = memory.ReadFloat(BoostAddress) * 100 / 3;
+            PreviousBoost = BoostAmount;
+            BoostAmount = (int)Math.Ceiling(boostFloat);
         }
     }
 }

@@ -1,46 +1,113 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Threading;
 using RocketLeagueOrion.Models;
 using RocketLeagueOrion.Utilities.Logitech;
-using RocketLeagueOrion.Utilities.Memory;
 
 namespace RocketLeagueOrion.Controllers
 {
-    public static class RocketLeagueController
+    public class RocketLeagueController
     {
-        public static Process GetProcessIfRunning()
+        public RocketLeagueController(MainController mainController)
+        {
+            MainController = mainController;
+            RocketLeagueWorker = new BackgroundWorker();
+            RocketLeagueWorker.DoWork += RocketLeagueWorker_DoWork;
+        }
+
+        public MainController MainController { get; set; }
+        public BackgroundWorker RocketLeagueWorker { get; set; }
+
+        public Process GetProcessIfRunning()
         {
             var rlProcess = Process.GetProcessesByName("RocketLeague");
             return rlProcess.Length >= 1 ? rlProcess[0] : null;
         }
 
-        public static void GetAddress(MainModel mainModel)
+        private void RocketLeagueWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            mainModel.Memory = new Memory(mainModel.RocketLeagueProcess);
-            mainModel.BoostAddress = mainModel.Memory.GetAddress("\"RocketLeague.exe\"+01570020+94+204+6F4+21C");
+            // Setup Logitech SDK
+            OrionController.SetupSdk();
+
+            var sw = new Stopwatch();
+            sw.Start();
+
+            while (!RocketLeagueWorker.CancellationPending)
+            {
+                // Refresh address every second
+                if (sw.ElapsedMilliseconds > 1000)
+                {
+                    // Ensure process is still running
+                    if (MainController.MainModel.RocketLeagueProcess.HasExited)
+                    {
+                        MainController.MainModel.Status = "Game not found";
+                        LogitechGSDK.LogiLedRestoreLighting();
+                        return;
+                    }
+                    sw.Restart();
+                }
+
+                // Update model boost amount
+                MainController.MainModel.GetBoostAmount();
+                FadeInIfHigher(MainController.MainModel);
+                // Generate new bitmap
+                var bitmap = CreateBoostBitmap(MainController.MainModel);
+
+                // Post it to device
+                LogitechGSDK.LogiLedSetLightingFromBitmap(OrionController.BitmapToByteArray(bitmap));
+                Thread.Sleep(100);
+            }
         }
 
-        public static void GetBoostAmount(MainModel mainModel)
+        public Bitmap CreateBoostBitmap(MainModel mainModel)
         {
-            var boostFloat = mainModel.Memory.ReadFloat(mainModel.BoostAddress)/3*100;
-            mainModel.PreviousBoost = mainModel.BoostAmount;
-            mainModel.BoostAmount = (int) Math.Round(boostFloat);
+            // Orion bitmaps are 21 wide, 6 high.
+            var flag = new Bitmap(21, 6);
+
+            using (var g = Graphics.FromImage(flag))
+            {
+                g.Clear(Color.Transparent);
+                var width = (int) (flag.Width/100.00*mainModel.BoostAmount);
+                if (width <= 0)
+                    return flag;
+
+                var mainBrush = new LinearGradientBrush(new Rectangle(0, 0, width, flag.Height), mainModel.MainColor,
+                    mainModel.SecondaryColor,
+                    LinearGradientMode.Horizontal);
+                g.FillRectangle(mainBrush, 0, 0, width, flag.Height);
+
+                var endBrush = new LinearGradientBrush(new Rectangle(width - 2, 0, 4, flag.Height),
+                    mainModel.SecondaryColor,
+                    Color.Transparent, LinearGradientMode.Horizontal);
+                g.FillRectangle(endBrush, width - 2, 0, 4, flag.Height);
+            }
+            return flag;
         }
 
-        public static void FadeInIfHigher(MainModel mainModel)
+        public void FadeInIfHigher(MainModel mainModel)
         {
             if (mainModel.BoostAmount <= mainModel.PreviousBoost)
                 return;
+            const int amountOfSteps = 6;
 
-            var limit = mainModel.BoostAmount;
             var difference = mainModel.BoostAmount - mainModel.PreviousBoost;
-            var differenceSteps = difference/6;
+            var differenceStep = difference / amountOfSteps;
+            var differenceStepRest = difference % amountOfSteps;
             mainModel.BoostAmount = mainModel.PreviousBoost;
-            for (var i = mainModel.BoostAmount; i < limit; i += differenceSteps)
+
+            for (var i = 0; i < amountOfSteps; i++)
             {
-                mainModel.BoostAmount += differenceSteps;
-                var bitmap = OrionController.CreateBoostBitmap(mainModel);
+                if (differenceStepRest > 0)
+                {
+                    differenceStepRest -= 1;
+                    mainModel.BoostAmount += 1;
+                }
+                mainModel.BoostAmount += differenceStep;
+
+                var bitmap = CreateBoostBitmap(mainModel);
                 LogitechGSDK.LogiLedSetLightingFromBitmap(OrionController.BitmapToByteArray(bitmap));
                 Thread.Sleep(50);
             }

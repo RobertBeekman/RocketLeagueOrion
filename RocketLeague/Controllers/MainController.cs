@@ -13,7 +13,6 @@ namespace RocketLeagueOrion.Controllers
     public class MainController
     {
         private readonly BackgroundWorker _processWorker;
-        private readonly BackgroundWorker _updateWorker;
 
         public MainController(MainView mainView)
         {
@@ -28,13 +27,13 @@ namespace RocketLeagueOrion.Controllers
             // Views
             MainView = mainView;
 
+            // Controllers
+            RocketLeagueController = new RocketLeagueController(this);
+
             // Background workers
             _processWorker = new BackgroundWorker();
             _processWorker.DoWork += processWorker_DoWork;
             _processWorker.WorkerSupportsCancellation = true;
-
-            _updateWorker = new BackgroundWorker();
-            _updateWorker.DoWork += updateWorker_DoWork;
 
             // Grand view access to MainController
             MainView.MainController = this;
@@ -42,6 +41,8 @@ namespace RocketLeagueOrion.Controllers
             // Start looking for RocketLeague.exe
             _processWorker.RunWorkerAsync();
         }
+
+        public RocketLeagueController RocketLeagueController { get; set; }
 
         // Models
         public MainModel MainModel { get; set; }
@@ -53,6 +54,14 @@ namespace RocketLeagueOrion.Controllers
             // Check every 10 seconds to see wether Rocket League is running
             while (!_processWorker.CancellationPending)
             {
+                // If the worker is busy, stop iteration
+                if (RocketLeagueController.RocketLeagueWorker.IsBusy)
+                {
+                    Thread.Sleep(10000);
+                    continue;
+                }
+
+                // If worker not busy and RL is running, start worker
                 var rlProcess = RocketLeagueController.GetProcessIfRunning();
                 if (rlProcess != null)
                 {
@@ -61,62 +70,13 @@ namespace RocketLeagueOrion.Controllers
                     MainModel.RocketLeagueProcess = rlProcess;
                     MainModel.Status = "Game running";
 
-                    _updateWorker.RunWorkerAsync();
-                    _processWorker.CancelAsync();
+                    RocketLeagueController.RocketLeagueWorker.RunWorkerAsync();
                 }
+                // If worker not busy and RL not running, try again in 10 sec
                 else
                     MainModel.Status = "Game not found";
-
+                
                 Thread.Sleep(10000);
-            }
-        }
-
-        private void updateWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                RocketLeagueController.GetAddress(MainModel);
-            }
-            catch (AccessViolationException)
-            {
-                _processWorker.RunWorkerAsync();
-                return;
-            }
-
-            // Setup Logitech SDK
-            OrionController.SetupSdk();
-
-            var sw = new Stopwatch();
-            sw.Start();
-
-            while (!_updateWorker.CancellationPending)
-            {
-                // Refresh address every second
-                if (sw.ElapsedMilliseconds > 1000)
-                {
-                    // Ensure process is still running
-                    if (MainModel.RocketLeagueProcess.HasExited)
-                    {
-                        MainModel.Status = "Game not found";
-                        LogitechGSDK.LogiLedRestoreLighting();
-                        _processWorker.RunWorkerAsync();
-                        return;
-                    }
-                    sw.Restart();
-                }
-
-                RocketLeagueController.GetAddress(MainModel);
-
-                // Update model boost amount
-                RocketLeagueController.GetBoostAmount(MainModel);
-                RocketLeagueController.FadeInIfHigher(MainModel);
-
-                // Generate new bitmap
-                var bitmap = OrionController.CreateBoostBitmap(MainModel);
-
-                // Post it to device
-                LogitechGSDK.LogiLedSetLightingFromBitmap(OrionController.BitmapToByteArray(bitmap));
-                Thread.Sleep(100);
             }
         }
 

@@ -51,7 +51,7 @@ namespace RocketLeagueOrion.Views
         {
             var oldBoost = MainController.MainModel.BoostAmount;
             MainController.MainModel.BoostAmount = 100;
-            var bitmap = OrionController.CreateBoostBitmap(MainController.MainModel);
+            var bitmap = MainController.RocketLeagueController.CreateBoostBitmap(MainController.MainModel);
             MainController.MainModel.BoostAmount = oldBoost;
 
             _graphics.Clear(Color.Transparent);
