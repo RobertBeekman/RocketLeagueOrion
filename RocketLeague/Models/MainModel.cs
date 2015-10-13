@@ -53,7 +53,7 @@ namespace RocketLeagueOrion.Models
         public void GetBoostAmount()
         {
             var memory = new Memory(RocketLeagueProcess);
-            BoostAddress = memory.GetAddress("\"RocketLeague.exe\"+0155B050+580+40+664+6F4+21C");
+            BoostAddress = memory.GetAddress("\"RocketLeague.exe\"+01500954+58+388+6F4+21c");
 
             var boostFloat = memory.ReadFloat(BoostAddress) * 100 / 3;
             PreviousBoost = BoostAmount;

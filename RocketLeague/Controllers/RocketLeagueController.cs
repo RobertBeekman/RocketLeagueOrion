@@ -13,6 +13,9 @@ namespace RocketLeagueOrion.Controllers
     {
         public RocketLeagueController(MainController mainController)
         {
+            // Setup Logitech SDK
+            OrionController.SetupSdk();
+
             MainController = mainController;
             RocketLeagueWorker = new BackgroundWorker();
             RocketLeagueWorker.DoWork += RocketLeagueWorker_DoWork;
@@ -29,9 +32,6 @@ namespace RocketLeagueOrion.Controllers
 
         private void RocketLeagueWorker_DoWork(object sender, DoWorkEventArgs e)
         {
-            // Setup Logitech SDK
-            OrionController.SetupSdk();
-
             var sw = new Stopwatch();
             sw.Start();
 
